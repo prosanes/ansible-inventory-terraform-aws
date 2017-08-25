@@ -43,16 +43,18 @@ func listInventory(tfstate *terraform.State, expectedGroupName, expectedInstance
 	for _, M := range tfstate.Modules {
 		for _, R := range M.Resources {
 			if R.Type == "aws_instance" {
-				var groupName, instanceName string
+				var groupName string
 				var OK bool
 
 				if groupName, OK = R.Primary.Attributes["tags."+expectedGroupName]; !OK {
 					continue
 				}
 
-				if instanceName, OK = R.Primary.Attributes["tags."+expectedInstanceName]; !OK {
+				if _, OK = R.Primary.Attributes["tags."+expectedInstanceName]; !OK {
 					continue
 				}
+
+				privateIP := R.Primary.Attributes["private_ip"]
 
 				var ansibleGroup AnsibleInventoryGroup
 
@@ -66,7 +68,7 @@ func listInventory(tfstate *terraform.State, expectedGroupName, expectedInstance
 					ansibleGroup = inv[groupName]
 				}
 
-				ansibleGroup.Hosts = append(inv[groupName].Hosts, instanceName)
+				ansibleGroup.Hosts = append(inv[groupName].Hosts, privateIP)
 				inv[groupName] = ansibleGroup
 			}
 		}
